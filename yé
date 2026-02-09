@@ -1,0 +1,243 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+
+local oldGui = player.PlayerGui:FindFirstChild("BattleBricks_Ultra_Combo")
+if oldGui then
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "Script System",
+        Text = "Found duplicated script! Removing",
+        Duration = 3
+    })
+    oldGui:Destroy()
+    task.wait(0.5)
+end
+
+local screenGui = Instance.new("ScreenGui", player.PlayerGui)
+screenGui.Name = "BattleBricks_Ultra_Combo"
+screenGui.ResetOnSpawn = false
+
+local unitStates = {false, false, false, false, false, false, false, false}
+local bankRunning = false
+local autoCannon = false
+local healthbarsEnabled = true
+local isVisible = true
+
+local mainFunctions = Instance.new("Frame", screenGui)
+mainFunctions.Size = UDim2.new(0, 220, 0, 350)
+mainFunctions.Position = UDim2.new(1, -225, 0, 10) 
+mainFunctions.BackgroundTransparency = 1 
+
+local toggleBtn = Instance.new("TextButton", screenGui)
+toggleBtn.Size = UDim2.new(0, 90, 0, 40)
+toggleBtn.Position = UDim2.new(1, -325, 0, 10) 
+toggleBtn.Text = "Hide Menu"
+toggleBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.BorderSizePixel = 2
+
+local hbToggle = Instance.new("TextButton", screenGui)
+hbToggle.Size = UDim2.new(0, 110, 0, 40)
+hbToggle.Position = UDim2.new(0, 10, 0.5, -20)
+hbToggle.Text = "Health: ON"
+hbToggle.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+hbToggle.TextColor3 = Color3.new(1, 1, 1)
+hbToggle.BorderSizePixel = 2
+
+local dragging, dragStart, startPos
+toggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = toggleBtn.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        toggleBtn.Position = newPos
+        mainFunctions.Position = newPos + UDim2.new(0, 100, 0, 0) 
+    end
+end)
+
+toggleBtn.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+end)
+
+toggleBtn.MouseButton1Click:Connect(function()
+    isVisible = not isVisible
+    mainFunctions.Visible = isVisible
+    toggleBtn.Text = isVisible and "Hide Menu" or "Show Menu"
+end)
+
+local unitButtons = {}
+local function createBtn(name, slot, x, y, color)
+    local btn = Instance.new("TextButton", mainFunctions)
+    btn.Size = UDim2.new(0, 100, 0, 40)
+    btn.Position = UDim2.new(0, x, 0, y)
+    btn.Text = name .. " (Off)"
+    btn.BackgroundColor3 = color
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    
+    local function toggle(state)
+        if slot == "Bank" then
+            bankRunning = state or not bankRunning
+            btn.Text = "Bank " .. (bankRunning and "(On)" or "(Off)")
+            btn.BackgroundColor3 = bankRunning and Color3.fromRGB(0, 180, 0) or color
+        elseif slot == "Cannon" then
+            autoCannon = state or not autoCannon
+            btn.Text = "Cannon " .. (autoCannon and "(On)" or "(Off)")
+            btn.BackgroundColor3 = autoCannon and Color3.fromRGB(255, 100, 0) or color
+        else
+            unitStates[slot] = state or not unitStates[slot]
+            btn.Text = "U" .. slot .. (unitStates[slot] and " (On)" or " (Off)")
+            btn.BackgroundColor3 = unitStates[slot] and Color3.fromRGB(255, 180, 0) or color
+        end
+    end
+    btn.MouseButton1Click:Connect(function() toggle() end)
+    if type(slot) == "number" then unitButtons[slot] = toggle end
+end
+
+createBtn("Unit 5", 5, 0, 0, Color3.fromRGB(120, 120, 120))
+createBtn("Unit 1", 1, 110, 0, Color3.fromRGB(120, 120, 120))
+createBtn("Unit 6", 6, 0, 45, Color3.fromRGB(120, 120, 120))
+createBtn("Unit 2", 2, 110, 45, Color3.fromRGB(120, 120, 120))
+createBtn("Unit 7", 7, 0, 90, Color3.fromRGB(120, 120, 120))
+createBtn("Unit 3", 3, 110, 90, Color3.fromRGB(120, 120, 120))
+createBtn("Unit 8", 8, 0, 135, Color3.fromRGB(120, 120, 120))
+createBtn("Unit 4", 4, 110, 135, Color3.fromRGB(120, 120, 120))
+createBtn("Bank", "Bank", 0, 185, Color3.fromRGB(80, 80, 80))
+createBtn("Cannon", "Cannon", 110, 185, Color3.fromRGB(80, 80, 80))
+
+local selectAllBtn = Instance.new("TextButton", mainFunctions)
+selectAllBtn.Size = UDim2.new(0, 210, 0, 35)
+selectAllBtn.Position = UDim2.new(0, 0, 0, -40)
+selectAllBtn.Text = "SELECT ALL UNITS"
+selectAllBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
+selectAllBtn.TextColor3 = Color3.new(1, 1, 1)
+selectAllBtn.MouseButton1Click:Connect(function()
+    local allOn = false
+    for i=1,8 do if not unitStates[i] then allOn = true break end end
+    for i=1,8 do unitButtons[i](allOn) end
+end)
+
+local gu = Instance.new("TextButton", mainFunctions)
+gu.Size = UDim2.new(0, 210, 0, 40)
+gu.Position = UDim2.new(0, 0, 0, 230)
+gu.Text = "GiveUp"
+gu.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+gu.TextColor3 = Color3.new(1, 1, 1)
+gu.MouseButton1Click:Connect(function()
+    pcall(function() ReplicatedStorage.Events.RemoteEvents.GiveUp:FireServer() end)
+end)
+
+hbToggle.MouseButton1Click:Connect(function()
+    healthbarsEnabled = not healthbarsEnabled
+    hbToggle.Text = healthbarsEnabled and "Health: ON" or "Health: OFF"
+    hbToggle.BackgroundColor3 = healthbarsEnabled and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(150, 0, 0)
+end)
+
+local function createHealthDisplay(npc, isEnemy)
+    if not npc:FindFirstChild("Humanoid") then return end
+    local humanoid, head = npc.Humanoid, npc:FindFirstChild("Head")
+    if not head or head:FindFirstChild("HealthDisplay") then return end
+
+    local billboard = Instance.new("BillboardGui", head)
+    billboard.Name = "HealthDisplay"
+    billboard.Size = UDim2.new(0, 140, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 4, 0)
+    billboard.AlwaysOnTop, billboard.Enabled = true, healthbarsEnabled
+
+    local damageLabel = Instance.new("TextLabel", billboard)
+    damageLabel.Size, damageLabel.Position = UDim2.new(1, 0, 0.3, 0), UDim2.new(0, 0, 0, 0)
+    damageLabel.BackgroundTransparency, damageLabel.TextScaled = 1, true
+    damageLabel.TextColor3, damageLabel.TextTransparency = Color3.new(1, 1, 0), 1
+
+    local barBackground = Instance.new("Frame", billboard)
+    barBackground.Size, barBackground.Position = UDim2.new(1, 0, 0.4, 0), UDim2.new(0, 0, 0.6, 0)
+    barBackground.BackgroundColor3 = Color3.fromRGB(50,50,50)
+
+    local barFill = Instance.new("Frame", barBackground)
+    barFill.Size = UDim2.new(1, 0, 1, 0)
+    barFill.BackgroundColor3 = isEnemy and Color3.fromRGB(255,165,0) or Color3.fromRGB(0,170,255)
+
+    local healthLabel = Instance.new("TextLabel", barBackground)
+    healthLabel.Size, healthLabel.BackgroundTransparency = UDim2.new(1, 0, 1, 0), 1
+    healthLabel.TextScaled, healthLabel.TextColor3 = true, Color3.new(1,1,1)
+    healthLabel.ZIndex = 2
+
+    local lastHealth, stackedDamage, lastHitTime = humanoid.Health, 0, 0
+
+    local function update()
+        if not humanoid or not humanoid.Parent then return end
+        local hp, mhp = humanoid.Health, humanoid.MaxHealth
+        local damageTaken = lastHealth - hp
+        if damageTaken > 0 then
+            stackedDamage = stackedDamage + math.floor(damageTaken)
+            lastHitTime, damageLabel.Text, damageLabel.TextTransparency = tick(), "-" .. stackedDamage, 0
+        end
+        lastHealth = hp
+        healthLabel.Text = math.floor(hp) .. " / " .. math.floor(mhp)
+        TweenService:Create(barFill, TweenInfo.new(0.2), {Size = UDim2.new(hp/mhp, 0, 1, 0)}):Play()
+    end
+
+    humanoid.HealthChanged:Connect(update)
+    task.spawn(function()
+        while billboard and billboard.Parent do
+            task.wait(0.1)
+            if billboard then billboard.Enabled = healthbarsEnabled end
+            if stackedDamage > 0 and tick() - lastHitTime >= 5 then
+                stackedDamage, damageLabel.TextTransparency = 0, 1
+            end
+        end
+    end)
+    update()
+end
+
+task.spawn(function()
+    while true do
+        local folders = workspace:FindFirstChild("NPCFolders")
+        if folders then
+            local f = folders:FindFirstChild("FriendlyFolder")
+            local e = folders:FindFirstChild("EnemyFolder")
+            if f and e then
+                for _, n in ipairs(f:GetChildren()) do createHealthDisplay(n, false) end
+                for _, n in ipairs(e:GetChildren()) do createHealthDisplay(n, true) end
+            end
+        end
+        task.wait(2)
+    end
+end)
+
+-- THE CRITICAL AUTO-RECOVERY LOOP
+task.spawn(function()
+    while true do
+        -- We try to find the match-specific remote every loop cycle
+        local success, result = pcall(function()
+            local events = ReplicatedStorage:FindFirstChild("Events")
+            if events then
+                local rf = events:FindFirstChild("RemoteFunction")
+                if rf then
+                    local spawnRemote = rf:FindFirstChild("PlayerSpawn")
+                    if spawnRemote then
+                        -- Fire Units
+                        for i = 1, 8 do 
+                            if unitStates[i] then spawnRemote:InvokeServer("Slot"..i) end 
+                        end
+                        -- Fire Bank
+                        if bankRunning then spawnRemote:InvokeServer("Bank") end
+                        -- Fire Cannon
+                        if autoCannon then spawnRemote:InvokeServer("Cannon") end
+                    end
+                end
+            end
+        end)
+        
+        -- Faster wait while in-match, slower if we are in the lobby/bugged
+        task.wait(0.3)
+    end
+end)
