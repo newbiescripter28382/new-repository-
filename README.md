@@ -8,7 +8,8 @@ end
 
 local settings = {
 	Version = "1.28", -- autoplayer version
-
+    
+	ForceSide = "Auto", -- "Auto", "Left", hoặc "Right". Đổi thành "Right" nếu nó không tự nhận diện được bên phải.
 	AutoPlay = false,
 	PerfectSick = 0, -- 0 to 1, 0 = off, values above 1 can cause issues
 	CopyEnemyNotes = false, -- I find this stupid
@@ -18,8 +19,10 @@ local settings = {
 	HitOffset = 0, -- seconds, can be negative
 	Performance = 2, -- 0 - 7. More value = less lags
 
-	MaxKPSPerKey = 0, -- 0 or less = inf
-	MaxKPS = 0, -- same here; MaxKPS limits keys per second for ALL keys, while MaxKPSPerKey limits keys per second for each key
+	MaxKPSPerKey = 0, 
+	-- 0 or less = inf
+	MaxKPS = 0, -- same here;
+	-- MaxKPS limits keys per second for ALL keys, while MaxKPSPerKey limits keys per second for each key
 
 	HoldDuration = 0.1,
 	HoldDurationRandom = 0, -- both positive and negative
@@ -31,10 +34,13 @@ local settings = {
 	FPS = 0, -- approximated fps value, read only
 	NotesRendered = 0, -- how many notes there currently is, read only
 	KPS = 0, -- read only
-	NotesVisible = 0, -- how many notes are visible right now (this can be lower than rendered, because of performance option), read only
-	ScrollSpeed = 0, -- is not game's scroll speed, is calculated scroll speed; usually that value 3-6 times bigger than game's scrollspeed value, read only
+	NotesVisible = 0, -- how many notes are visible right now 
+	-- (this can be lower than rendered, because of performance option), read only
+	ScrollSpeed = 0, -- is not game's scroll speed, is calculated scroll speed;
+	-- usually that value 3-6 times bigger than game's scrollspeed value, read only
 	DownScroll = false, -- on ModChart songs it sometimes can freak out, read only
-	Lanes = 0, -- e.g. how much keys are in the song (4, 5, 6, 7, 8, 9), read only
+	Lanes = 0, -- e.g.
+	-- how much keys are in the song (4, 5, 6, 7, 8, 9), read only
 	RenderDelta = 0, -- a literal (tick() - start) time between RenderStepped events, read only
 	MyNotesRendered = 0, -- you know the drill, read only
 	EnemyNotesRendered = 0, -- same here, read only
@@ -45,14 +51,16 @@ local settings = {
 	Rate = 1, -- song's rate (speed), read only
 	TimeLeft = 0, -- song's time left, read only
 	SongName = "", -- read only
-	TotalNotes = 0, -- how many notes been generated in our side and (if enabled in game's settings) enemy's side, read only
+	TotalNotes = 0, -- how many notes been generated 
+	-- in our side and (if enabled in game's settings) enemy's side, read only
 	MyTotalNotes = 0, -- same as previous, but for your side, read only
 	EnemyTotalNotes = 0, -- read only
 	StaticHitOffset = 0, -- seconds, not implemented yet, read only
 	SongDuration = 0, -- how long the song is, read only
 	SongRealDuration = 0, -- same as previous value, but also is multiplied by rate, read only
 	SongNameColor = Color3.new(), -- useless thing, read only
-	SongDifficulty = "", -- e.g. Easy, Normal, Hard, Lunatic, etc, read only
+	SongDifficulty = "", -- e.g.
+	-- Easy, Normal, Hard, Lunatic, etc, read only
 
 	Chances = {
 		Sick = 100,
@@ -64,7 +72,8 @@ local settings = {
 }
 
 --[[ Extra readonly values:
-Keybinds = { string? }
+Keybinds = { string?
+}
 Events = { [string] = Event } -- a table that stores next events:
 
 NoteAdded = Event(instance, isMine: boolean, isRegularNote: boolean)
@@ -84,7 +93,8 @@ Supported = { [string]: number } -- scroll down in that code to see what it stor
 
 ----
 
-print(settings.Keybinds[1]) -- will print the first keybind, if has one, else nil
+print(settings.Keybinds[1]) -- will print the first keybind, if 
+has one, else nil
 
 ----
 
@@ -133,7 +143,7 @@ local game, workspace = game, workspace
 local _wait, spawn = task.wait, task.spawn
 local max, min, clamp, abs, random, round = math.max, math.min, math.clamp, math.abs, math.random, math.round
 local inf = 1 / 0
-local insert, remove, find, clone, sort, concat = table.insert, table.remove, table.find, --[[table.clone]] function(t) local copy = { } for i, v in t do copy[i] = v end return copy end, table.sort, table.concat
+local insert, remove, find, clone, sort, concat = table.insert, table.remove, table.find, function(t) local copy = { } for i, v in t do copy[i] = v end return copy end, table.sort, table.concat
 local v2, c3 = vector and vector.create or Vector2.new, Color3.new
 local ipairs = ipairs
 local tonumber = tonumber
@@ -268,7 +278,7 @@ settingChanged:Connect(function(setting, value)
 	end
 end)
 
-local events = { -- not actually only events
+local events = {
 	Message = message,
 
 	NoteAdded = note,
@@ -276,15 +286,15 @@ local events = { -- not actually only events
 
 	KeybindsChanged = keybindsChanged,
 
-	SettingChanged = settingChanged, -- (setting, value)
-	Changed = changed, -- same as previous one, but applies also for readonly values
+	SettingChanged = settingChanged,
+	Changed = changed, 
 
 	GameStarted = gameStarted,
 	GameEnded = gameEnded,
 
 	ReadOnlyStats = readonlyStats,
 
-	Supported = (table and table.freeze or function(t) return t end)({ -- 3 = supported, 2 = kinda supported, 1 = poorly supported, 0 = not supported
+	Supported = (table and table.freeze or function(t) return t end)({
 		["SV"] = 2,
 		["Mod Charts"] = 3,
 		["Multi-Key"] = 3,
@@ -305,7 +315,8 @@ local function getUnrepeated(data)
 
 	sort(sortedIndices, function(a, b) return #data[a] < #data[b] end)
 
-	local backtrack; backtrack = function(idx)
+	local backtrack;
+	backtrack = function(idx)
 		if idx > n then return true end
 
 		local setIdx = sortedIndices[idx]
@@ -605,7 +616,7 @@ local side = getMySide() or "Left"
 local lanes = 0
 local isDownScroll = false
 local downscrollPropability = 0
-local power = 3 -- idc
+local power = 3
 
 local hit = { }
 
@@ -661,7 +672,8 @@ local function raceEvents(events, timeout)
 	return winner
 end
 
-local labelAdded; labelAdded = function(laneNum, label, cons)
+local labelAdded;
+labelAdded = function(laneNum, label, cons)
 	local textL = label:WaitForChild("Text", timeOut)
 	kbVals[laneNum] = kbVals[laneNum] or { }
 
@@ -785,7 +797,8 @@ local function laneAdded(lane, isMine, notest, cons, receptors)
 		lanes = max(lanes, laneNum)
 		settings.Lanes = lanes
 
-		wait(); r()
+		wait();
+		r()
 
 		if lanes == laneNum then
 			local allNotes = { }
@@ -835,7 +848,8 @@ local function laneAdded(lane, isMine, notest, cons, receptors)
 		end
 	end
 
-	cons[#cons + 1] = notes.ChildAdded:Connect(function(v)local downscroll = v.Position.Y.Scale < receptor.Position.Y.Scale + 0.5
+	cons[#cons + 1] = notes.ChildAdded:Connect(function(v)
+		local downscroll = v.Position.Y.Scale < receptor.Position.Y.Scale + 0.5
 		downscrollPropability = clamp((downscroll and power or -power) + downscrollPropability, -1, 1)
 		isDownScroll = downscrollPropability > 0
 		settings.DownScroll = isDownScroll
@@ -954,7 +968,8 @@ local badOffset   = offsets.Bad
 local goodOffset  = offsets.Good
 
 local lastJump = 0
-local canHit; canHit = function(note, receptor, isBadNote, laneIndex)
+local canHit;
+canHit = function(note, receptor, isBadNote, laneIndex)
 	local x = UDimToVector2(receptor.Position) + v2(useX and 0.5 or 0, 0.5, 0)
 	local y = UDimToVector2(note.Position)
 
@@ -1000,11 +1015,17 @@ local canHit; canHit = function(note, receptor, isBadNote, laneIndex)
 end
 
 local one = UDim2.fromScale(1, 1)
+
+-- Đoạn mã này đã được cải tiến để ưu tiên giá trị ForceSide của bạn
 spawn(function()
 	while true do
 		wait()
 		if not settings.Playing then
-			side = getMySide() or side
+			if settings.ForceSide == "Auto" then
+				side = getMySide() or side
+			elseif settings.ForceSide == "Left" or settings.ForceSide == "Right" then
+				side = settings.ForceSide
+			end
 			settings.Side = side
 		end
 	end
@@ -1164,7 +1185,7 @@ local function calculateNotes(notes, receptors, mine)
 	end
 
 	local delta = r()
-	if #startPositions == 0 then return end -- no notes
+	if #startPositions == 0 then return end
 
 	local gotSpeed = 0
 	local dlt = min(delta, 0.1)
@@ -1440,7 +1461,7 @@ local function onWindow(window, dontStartAutoplay)
 	scrollSpeed = 0
 	prevSpeed = false
 	SVMode = false
-	SVDetectAttempts = -1 -- for a reason, when a song starts it will make jump from 0 to actual scroll speed
+	SVDetectAttempts = -1 
 	settings.ScrollSpeed = 0
 	isModChart = false
 	settings.IsModChartSong = false
