@@ -8,8 +8,9 @@ end
 
 local settings = {
 	Version = "1.28", -- autoplayer version
-    
-	ForceSide = "Auto", -- "Auto", "Left", hoặc "Right". Đổi thành "Right" nếu nó không tự nhận diện được bên phải.
+
+	ForceSide = "Right", -- TÙY CHỈNH: Đổi thành "Left" nếu bạn chơi bên trái, hoặc "Auto" để tự động.
+	
 	AutoPlay = false,
 	PerfectSick = 0, -- 0 to 1, 0 = off, values above 1 can cause issues
 	CopyEnemyNotes = false, -- I find this stupid
@@ -66,49 +67,10 @@ local settings = {
 		Sick = 100,
 		Good = 0,
 		Ok = 0,
-		Bad = 0, -- wont always hit the "Bad", very often it will hit the `Ok`
-		Miss = 0 -- sometimes when `Miss` note and any other note are coming close, they both will be hit
+		Bad = 0, 
+		Miss = 0 
 	}
 }
-
---[[ Extra readonly values:
-Keybinds = { string?
-}
-Events = { [string] = Event } -- a table that stores next events:
-
-NoteAdded = Event(instance, isMine: boolean, isRegularNote: boolean)
-NoteRemoved = Event(instance, isMine: boolean, isRegularNote: boolean)
-
-KeybindsChanged = Event({ string })
-
-GameStarted = Event()
-GameEnded = Event()
-
-Message = Event(string)
-
-SettingChanged = Event(string, any) -- settings from the settings table below, does not apply for readonly values
-Changed = Event(string, any, isReadOnly: bool) -- same as previous one, but being fired ALSO for readonly values (e.g. normal values are being fired also)
-
-Supported = { [string]: number } -- scroll down in that code to see what it stores exactly
-
-----
-
-print(settings.Keybinds[1]) -- will print the first keybind, if 
-has one, else nil
-
-----
-
-Each Event has
-	:Connect(func) -> Connection
-	:Once(func) -> Connection
-	:Wait() -> Any -- uses task.wait(), so its not instant
-
-Each Connection has
-	.Connected : bool
-	.Enabled : bool
-	.Callback : function
-	:Disconnect() -> never
-]]
 
 local readonlyStats = (table and table.freeze or function(t) return t end)({ "Side", "MyTotalNotes", "EnemyTotalNotes", "StaticHitOffset", "TotalNotes", "Playing", "FPS", "NotesRendered", "KPS", "SongName", "NotesVisible", "ScrollSpeed", "MyNotesRendered", "EnemyNotesRendered", "EnemyNotesVisible", "MyNotesVisible", "DownScroll", "Lanes", "RenderDelta", "IsSVSong", "IsModChartSong", "Rate", "TimeLeft", "SongDuration", "SongRealDuration", "SongDifficulty" })
 
@@ -612,7 +574,7 @@ local function getMySide()
 	end
 end
 
-local side = getMySide() or "Left"
+local side = "Left" -- Giá trị tạm thời
 local lanes = 0
 local isDownScroll = false
 local downscrollPropability = 0
@@ -802,12 +764,12 @@ local function laneAdded(lane, isMine, notest, cons, receptors)
 
 		if lanes == laneNum then
 			local allNotes = { }
-			local side = isMine
+			local sideCheck = isMine
 
 			for i = 1, lanes do
-				local lane = side:FindFirstChild("Lane" .. i)
-				if lane then
-					local notes = lane:FindFirstChild("Notes")
+				local singleLane = sideCheck:FindFirstChild("Lane" .. i)
+				if singleLane then
+					local notes = singleLane:FindFirstChild("Notes")
 					if notes then
 						for _, v in notes:GetChildren() do
 							insert(allNotes, v)
@@ -1015,21 +977,6 @@ canHit = function(note, receptor, isBadNote, laneIndex)
 end
 
 local one = UDim2.fromScale(1, 1)
-
--- Đoạn mã này đã được cải tiến để ưu tiên giá trị ForceSide của bạn
-spawn(function()
-	while true do
-		wait()
-		if not settings.Playing then
-			if settings.ForceSide == "Auto" then
-				side = getMySide() or side
-			elseif settings.ForceSide == "Left" or settings.ForceSide == "Right" then
-				side = settings.ForceSide
-			end
-			settings.Side = side
-		end
-	end
-end)
 
 local function sortLane(lane)
 	sort(lane, sortF)
@@ -1440,6 +1387,14 @@ end
 
 local function onWindow(window, dontStartAutoplay)
 	if window.Name ~= "Window" then return end
+
+	-- BẢN SỬA LỖI: Tính toán lại biến `side` ngay khi cửa sổ trò chơi mở lên
+	if settings.ForceSide == "Auto" then
+		side = getMySide() or "Left"
+	else
+		side = settings.ForceSide
+	end
+	settings.Side = side
 
 	gameStarted:Fire()
 
